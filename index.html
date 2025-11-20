@@ -92,14 +92,14 @@
             color: #000;
             box-shadow: 0 0 30px #0ff;
         }
-        /* Mobile Controls */
+        /* Mobile Controls - Adjusted size */
         #mobile-controls {
             position: absolute;
             bottom: 20px;
             left: 0;
             width: 100%;
-            height: 150px;
-            display: none; /* Javascript will enable this on touch devices */
+            height: 100px; /* Reduced from 150px */
+            display: none;
             pointer-events: none;
             z-index: 5;
         }
@@ -115,7 +115,7 @@
             justify-content: center;
             align-items: center;
             color: rgba(255, 255, 255, 0.3);
-            font-size: 30px;
+            font-size: 20px; /* Reduced from 30px */
         }
         #zone-left { left: 10px; width: 30%; }
         #zone-right { left: 32%; width: 30%; }
@@ -156,19 +156,18 @@
     <div id="zone-fire" class="control-zone">FIRE</div>
 </div>
 
-<!-- Import Three.js (Reverted to stable r128) -->
+<!-- Import Three.js (Stable r128) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
 /**
  * AUDIO SYSTEM (Web Audio API)
- * Synthesizes sounds without external files
  */
 class SoundManager {
     constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.value = 0.3; // Overall volume
+        this.masterGain.gain.value = 0.3; 
         this.masterGain.connect(this.ctx.destination);
     }
 
@@ -177,7 +176,7 @@ class SoundManager {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
-        osc.type = 'sawtooth'; // Laser-like
+        osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(880, this.ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(110, this.ctx.currentTime + 0.15);
         
@@ -193,11 +192,10 @@ class SoundManager {
 
     playExplosion() {
         if (this.ctx.state === 'suspended') this.ctx.resume();
-        const bufferSize = this.ctx.sampleRate * 0.5; // 0.5 seconds
+        const bufferSize = this.ctx.sampleRate * 0.5; 
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
         
-        // Generate white noise
         for (let i = 0; i < bufferSize; i++) {
             data[i] = Math.random() * 2 - 1;
         }
@@ -242,11 +240,14 @@ class SoundManager {
 /**
  * GAME CONSTANTS & STATE
  */
+// Touch Device Detection (Moved up for usage in config logic)
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
 const GAME_CONFIG = {
     playerSpeed: 0.3,
     playerLimitX: 14,
     bulletSpeed: 0.5,
-    enemyBulletSpeed: 0.15, // 敵の弾の速度を追加 (以前は0.3相当)
+    enemyBulletSpeed: 0.15, 
     enemySpeedBase: 0.05,
     enemyDrop: 1.0,
     fireRate: 300, // ms
@@ -258,7 +259,7 @@ let state = {
     lives: 3,
     lastShotTime: 0,
     level: 1,
-    enemyDirection: 1, // 1 = right, -1 = left
+    enemyDirection: 1, 
     enemySpeed: GAME_CONFIG.enemySpeedBase
 };
 
@@ -330,7 +331,7 @@ const enemyBulletMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
 const playerGroup = new THREE.Group();
 const shipGeo = new THREE.ConeGeometry(0.8, 2, 4);
 const shipMesh = new THREE.Mesh(shipGeo, playerMat);
-shipMesh.rotation.y = Math.PI / 4; // Make it look like a sleek pyramid
+shipMesh.rotation.y = Math.PI / 4; 
 shipMesh.rotation.x = -Math.PI / 2;
 shipMesh.castShadow = true;
 playerGroup.add(shipMesh);
@@ -345,6 +346,11 @@ const engineRight = new THREE.Mesh(engineGeo, engineMat);
 engineRight.position.set(0.5, 0, 1);
 engineRight.rotation.x = Math.PI / 2;
 playerGroup.add(engineLeft, engineRight);
+
+// Adjust Player Size for Mobile
+if (isTouchDevice) {
+    playerGroup.scale.set(0.7, 0.7, 0.7);
+}
 
 scene.add(playerGroup);
 playerGroup.position.y = 0;
@@ -413,15 +419,12 @@ function spawnEnemies() {
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-            // Create simple voxel-like enemy
             const enemyGeo = new THREE.BoxGeometry(0.8, 0.5, 0.8);
             const mesh = new THREE.Mesh(enemyGeo, enemyMat);
             
-            // Position in grid
             mesh.position.set(startX + c * 1.5, 0, startZ - r * 1.5);
             mesh.castShadow = true;
             
-            // Add subtle animation offset
             mesh.userData = { 
                 row: r, 
                 col: c, 
@@ -438,15 +441,13 @@ function spawnEnemies() {
 function shoot() {
     const now = Date.now();
     if (now - state.lastShotTime > GAME_CONFIG.fireRate) {
-        // Replaced CapsuleGeometry with CylinderGeometry for r128 compatibility
         const bulletGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.8, 8);
         const bullet = new THREE.Mesh(bulletGeo, bulletMat);
         
         bullet.rotation.x = Math.PI / 2;
         bullet.position.copy(playerGroup.position);
-        bullet.position.z -= 1.0; // Start slightly ahead
+        bullet.position.z -= 1.0; 
 
-        // Add a point light to the bullet for "rich" effect
         const light = new THREE.PointLight(0x00ff00, 1, 5);
         bullet.add(light);
 
@@ -456,7 +457,6 @@ function shoot() {
         soundManager.playShoot();
         state.lastShotTime = now;
         
-        // Recoil effect
         playerGroup.position.z += 0.2;
     }
 }
@@ -475,8 +475,14 @@ function enemyShoot() {
         bullet.add(light);
 
         scene.add(bullet);
-        // 設定した enemyBulletSpeed を使用するように変更
-        enemyBullets.push({ mesh: bullet, velocity: new THREE.Vector3(0, 0, GAME_CONFIG.enemyBulletSpeed) });
+        
+        // Adjust bullet speed for mobile
+        let speed = GAME_CONFIG.enemyBulletSpeed;
+        if (isTouchDevice) {
+            speed = speed * 0.6; // 40% Slower on mobile
+        }
+
+        enemyBullets.push({ mesh: bullet, velocity: new THREE.Vector3(0, 0, speed) });
     }
 }
 
@@ -494,7 +500,6 @@ function checkCollisions() {
             const eBox = new THREE.Box3().setFromObject(e.mesh);
 
             if (bBox.intersectsBox(eBox)) {
-                // Hit!
                 createExplosion(e.mesh.position, 0xff0055);
                 soundManager.playExplosion();
                 
@@ -508,8 +513,6 @@ function checkCollisions() {
                 document.getElementById('score-display').innerText = `SCORE: ${state.score}`;
                 
                 hit = true;
-                
-                // Speed up remaining enemies
                 state.enemySpeed *= 1.02;
                 break;
             }
@@ -532,7 +535,6 @@ function checkCollisions() {
             state.lives--;
             document.getElementById('lives-display').innerText = `LIVES: ${state.lives}`;
             
-            // Camera shake
             camera.position.x = (Math.random() - 0.5) * 2;
             camera.position.y = 8 + (Math.random() - 0.5) * 2;
 
@@ -543,7 +545,6 @@ function checkCollisions() {
         }
     }
 
-    // Enemies reaching player line
     for (let e of enemies) {
         if (e.mesh.position.z > 5) {
             gameOver();
@@ -551,7 +552,6 @@ function checkCollisions() {
         }
     }
 
-    // Level clear
     if (enemies.length === 0 && state.isPlaying) {
         state.level++;
         spawnEnemies();
@@ -571,25 +571,21 @@ function startGame() {
     state.level = 1;
     state.isPlaying = true;
     
-    // Reset UI
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('game-over-screen').classList.add('hidden');
     document.getElementById('score-display').innerText = `SCORE: 0`;
     document.getElementById('lives-display').innerText = `LIVES: 3`;
     
-    // Check for mobile to show controls
     if(isTouchDevice) {
         document.getElementById('mobile-controls').style.display = 'block';
     }
 
-    // Reset objects
     bullets.forEach(b => scene.remove(b.mesh));
     bullets = [];
     enemyBullets.forEach(b => scene.remove(b.mesh));
     enemyBullets = [];
     playerGroup.position.set(0, 0, 8);
     
-    // Start music context
     soundManager.ctx.resume();
     
     spawnEnemies();
@@ -622,8 +618,7 @@ window.addEventListener('keyup', (e) => {
     if (e.code === 'KeyD') keys.KeyD = false;
 });
 
-// Touch Controls
-const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+// Touch Controls Logic
 const touchState = { left: false, right: false, fire: false };
 
 const leftZone = document.getElementById('zone-left');
@@ -652,7 +647,6 @@ function animate() {
     requestAnimationFrame(animate);
 
     if (!state.isPlaying) {
-        // Idle animation for background
         starField.rotation.z += 0.0005;
         renderer.render(scene, camera);
         return;
@@ -661,7 +655,6 @@ function animate() {
     const delta = clock.getDelta();
     const time = clock.getElapsedTime();
 
-    // --- Player Movement ---
     let moveX = 0;
     if (keys.ArrowLeft || keys.KeyA || touchState.left) moveX = -1;
     if (keys.ArrowRight || keys.KeyD || touchState.right) moveX = 1;
@@ -669,23 +662,16 @@ function animate() {
     playerGroup.position.x += moveX * GAME_CONFIG.playerSpeed;
     playerGroup.position.x = Math.max(-GAME_CONFIG.playerLimitX, Math.min(GAME_CONFIG.playerLimitX, playerGroup.position.x));
     
-    // Recoil recovery
     playerGroup.position.z = THREE.MathUtils.lerp(playerGroup.position.z, 8, 0.1);
-
-    // Tilt effect
     playerGroup.rotation.z = THREE.MathUtils.lerp(playerGroup.rotation.z, moveX * -0.5, 0.1);
 
-    // Shooting
     if (keys.Space || touchState.fire) {
         shoot();
     }
 
-    // --- Enemy Movement ---
-    // Move whole block
     let hitEdge = false;
     for (let e of enemies) {
         e.mesh.position.x += state.enemyDirection * state.enemySpeed;
-        // Bobbing animation
         e.mesh.position.y = Math.sin(time * 2 + e.mesh.userData.offset) * 0.2;
         e.mesh.rotation.y += 0.02;
         e.mesh.rotation.x = Math.sin(time * 3) * 0.2;
@@ -699,15 +685,12 @@ function animate() {
         state.enemyDirection *= -1;
         for (let e of enemies) {
             e.mesh.position.z += GAME_CONFIG.enemyDrop;
-            // Slight push back to prevent immediate double trigger if stuck
             e.mesh.position.x += state.enemyDirection * 0.5; 
         }
     }
 
     enemyShoot();
 
-    // --- Projectiles ---
-    // Update Player Bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
         bullets[i].mesh.position.add(bullets[i].velocity);
         if (bullets[i].mesh.position.z < -20) {
@@ -715,7 +698,6 @@ function animate() {
             bullets.splice(i, 1);
         }
     }
-    // Update Enemy Bullets
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         enemyBullets[i].mesh.position.add(enemyBullets[i].velocity);
         if (enemyBullets[i].mesh.position.z > 15) {
@@ -724,7 +706,6 @@ function animate() {
         }
     }
 
-    // --- Particles ---
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         const positions = p.mesh.geometry.attributes.position.array;
@@ -744,29 +725,24 @@ function animate() {
         }
     }
 
-    // --- Camera Follow ---
     camera.position.x = THREE.MathUtils.lerp(camera.position.x, playerGroup.position.x * 0.3, 0.05);
     
-    // Camera Reset lerp (from shake)
     if (Math.abs(camera.position.y - 8) > 0.01) {
         camera.position.y = THREE.MathUtils.lerp(camera.position.y, 8, 0.1);
     }
 
     checkCollisions();
 
-    // --- Render ---
-    starField.rotation.z += 0.001; // Dynamic background
+    starField.rotation.z += 0.001; 
     renderer.render(scene, camera);
 }
 
-// Handle resize
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Init
 animate();
 
 </script>
