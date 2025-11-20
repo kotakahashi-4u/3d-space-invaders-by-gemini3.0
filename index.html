@@ -246,6 +246,7 @@ const GAME_CONFIG = {
     playerSpeed: 0.3,
     playerLimitX: 14,
     bulletSpeed: 0.5,
+    enemyBulletSpeed: 0.15, // 敵の弾の速度を追加 (以前は0.3相当)
     enemySpeedBase: 0.05,
     enemyDrop: 1.0,
     fireRate: 300, // ms
@@ -474,7 +475,8 @@ function enemyShoot() {
         bullet.add(light);
 
         scene.add(bullet);
-        enemyBullets.push({ mesh: bullet, velocity: new THREE.Vector3(0, 0, GAME_CONFIG.bulletSpeed * 0.6) });
+        // 設定した enemyBulletSpeed を使用するように変更
+        enemyBullets.push({ mesh: bullet, velocity: new THREE.Vector3(0, 0, GAME_CONFIG.enemyBulletSpeed) });
     }
 }
 
